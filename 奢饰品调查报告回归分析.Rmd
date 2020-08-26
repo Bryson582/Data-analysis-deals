@@ -1,0 +1,120 @@
+---
+title: "奢饰品调查研究"
+output:
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+  html_document: default
+---
+我们首先在Excel中对数据进行一定程度上的修改
+我们的调查问卷使用的是7级李克特量表 7类分级为
+# 心理状态自变量
+强烈不同意	不同意	有点不同意	一般	有点同意	同意	强烈同意
+   1           2        3         4       5       6       7
+# 消费因素因变量
+非常不重要	不重要	 不太重要	  一般	有点重要	 重要	 非常重要
+   1           2        3         4       5       6       7
+# 使用0-6对心理状态自变量程序进行分级
+# 使用0-6对消费因素因变量程度进行分级
+我们对数据的列名进行处理
+  <!-- （1）自变量 -->
+  焦虑                                                                    -  anxiety
+  沮丧                                                                    -  frustrated
+  压力                                                                    -  pressure
+  生活满意度下降                                                          -  decline in life satisfaction
+  判断社会风险增加（主要体现在对各类社会问题的担忧增加）                  -  judging the increase in social risks
+  <!-- （2）因变量 奢侈品的的功能性价值 -->
+  该产品是使用优质原材料制成的                                            -  high-quality raw materials
+  该产品具有稳定的质量和表现（单个产品之间质量差异很小）                  -  stable quality and performance
+  该产品具有优秀的款式（包括：颜色、气味、包装、形状、设计）              -  excellent style
+  该产品具有良好的耐久性（可以长期使用）                                  -  good durability
+  该产品具有独特性（较少有人拥有同款）                                    -  unique
+  该产品可以在不同场合使用（例如：上班、上课、社交、面试）                -  use in different situations
+  功能性价值平均值                                                        -  function_avg
+  <!-- （3）因变量 奢侈品的的财务价值 -->
+  该产品定价偏高（而高价可体现高质量和个人财富、社会地位）                -  high price
+  该产品定价物有所值（价格和质量相关联，质量决定价格，价格合理）          -  value for money
+  该产品定价物超所值（该产品质量要高于同价位的其他产品）                  -  great value for money
+  财务性价值均值                                                          -  price_avg
+  <!-- （4）因变量 奢侈品的的社会价值 -->
+  拥有该产品可以改善他人对我的看法                                        -  improve how others think of me
+  拥有该产品可以给他人留下良好的印象                                      -  leave a good impression on others
+  拥有该产品可以让我被特定群体所接受（例如：同事、同学、俱乐部会员）      -  accepted by specific groups
+  拥有该产品可以增加我的社会认同度（社会认同：一个群体对某人的积极评价）  -  increase my social identity 
+  拥有该产品可以体现我的社会地位和财富                                    -  reflect my social status and wealth
+  拥有该产品可以提高我的声望、名誉                                        -  improve my reputation
+  社会性价值均值                                                          -  society_avg
+  <!-- （5）因变量 奢侈品的的个人价值 -->
+  该产品符合我的自我形象                                                  -  in line with my self-image
+  拥有该产品能帮我塑造我想要的个人形象                                    -  shape the personal image I want
+  拥有该产品能满足我的情感和感官需求（例如：享乐、审美、兴奋、安慰）      -  satisfy my emotional and sensory needs 
+  拥有该产品可以增加我的物质满足感（与情感上的满足感相对）                -  increase my material satisfaction
+  个人性价值均值                                                          -  individual_avg
+
+我们从Excel表导入数据    
+```{r 导入数据}
+library(readxl)
+demo <- read_excel("/Users/brycelee/Desktop/demo.xlsx")
+# 我们看到我们一共有154份调查问卷，并有涉及到分析的有23个变量 并且有5个变量作为我们的自变量， 18个作为我们的因变量。
+```
+
+# 一，数据描述性分析
+```{r 描述性分析}
+head(demo)
+summary(demo)
+# 该调查问卷中没有缺失值，可以对自变量进行一定的可视化处理
+new <- c("anxiety","frustrated","pressure","decline in life satisfaction","judging the increase in social risks")
+demo_independent <- demo[new]
+boxplot(demo$anxiety,demo$frustrated,demo$pressure,demo$`decline in life satisfaction`,demo$`judging the increase in social risks`,col = "lightblue",notch = F,ylab="satisfaction level",xlab=" anxiety,frustrated,pressure,decline in life satisfaction,judging the increase in social risks",varwith = T,main="The distribution of independent variables")
+```
+我们看到在箱线图中焦虑，压力，生活满意度下降的心理因素认同感大致相同。并且因为疫情影响，判断社会风险增加（主要体现在对各类社会问题的担忧增加）的认同感极其强。
+<!-- 注意 -->因为我们在数据箱线图中观察到有一个异常值，我们需要在数据中去掉改异常值，得到更好的拟合效果。
+```{r 剔除异常值}
+demo <- demo[-154,]
+```
+
+# 二，相关性分析和回归
+# 1，在奢侈品的的功能性价值方面
+由于我们此时需要对因变量分类和对数据进行可视化处，所以需要对数据的名称进行修改并且进行取子集处理,并且按照类别取平均值。
+```{r 奢饰品功能性价值}
+library(corrplot)
+demo1 <- c("anxiety","frustrated","pressure","decline in life satisfaction","judging the increase in social risks","function_avg")
+demo_function <- demo[demo1]
+corrplot(cor(demo_function),method="number",tl.cex = 0.6)
+corrplot(cor(demo_function),method="circle",tl.cex = 0.6)
+# 这两个相关性的图根据需要取一个就行
+function_data <-lm(formula = function_avg ~  anxiety + frustrated + pressure + `decline in life satisfaction` + `judging the increase in social risks`,data = demo)
+summary(function_data)
+```
+# 2.在奢侈品的的财务价值方面
+```{r 奢饰品的财务价值}
+demo2 <- c("anxiety","frustrated","pressure","decline in life satisfaction","judging the increase in social risks","price_avg")
+demo_price <- demo[demo1]
+corrplot(cor(demo_price),method="number",tl.cex = 0.6)
+corrplot(cor(demo_price),method="circle",tl.cex = 0.6)
+price_data <-lm(formula = price_avg ~  anxiety + frustrated + pressure + `decline in life satisfaction` + `judging the increase in social risks`,data = demo)
+summary(price_data)
+```
+# 3.在奢侈品的的社会价值（与消费者在社交中地位和声望相关的奢侈品价值）方面
+```{r 奢饰品的社会价值}
+demo3 <- c("anxiety","frustrated","pressure","decline in life satisfaction","judging the increase in social risks","society_avg")
+demo_society <- demo[demo3]
+corrplot(cor(demo_society),method="number",tl.cex = 0.6)
+corrplot(cor(demo_society),method="circle",tl.cex = 0.6)
+society_data <-lm(formula = society_avg ~  anxiety + frustrated + pressure + `decline in life satisfaction` + `judging the increase in social risks`,data = demo)
+summary(society_data)
+```
+# 4.在奢侈品的的个人价值（与消费者自身观念相关的奢侈品价值）方面
+```{r 奢饰品的个人价值}
+demo4 <- c("anxiety","frustrated","pressure","decline in life satisfaction","judging the increase in social risks","individual_avg")
+demo_individual <- demo[demo3]
+corrplot(cor(demo_individual),method="number",tl.cex = 0.6)
+corrplot(cor(demo_individual),method="circle",tl.cex = 0.6)
+individual_data <-lm(formula = individual_avg ~  anxiety + frustrated + pressure + `decline in life satisfaction` + `judging the increase in social risks`,data = demo)
+summary(individual_data)
+```
+# 简单的总结一下
+四个线性回归模型的显著水平都能满足要求（95%的置信区间），但由于自变量有点少，相关性都不太高，相关性从低到高的排序为(奢侈品的的个人价值>奢侈品的的财务价值方面>奢侈品的的功能性价值方面>奢侈品的的社会价值方面)，这说明经过新冠疫情后，心理因素对奢饰品个人价值的影响的最大，影响最小的是奢饰品的社会价值方面。
+并且我们也通过summary()函数得出了相关的线性关系
+奢饰品的功能性价值 = 0.11354 * anxiety - 0.04858 * frustrated -0.03560 * pressure + 0.02490 * decline in life satisfaction +  0.27375 * judging the increase in social risks + 3.27807
+剩下三个同理
